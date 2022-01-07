@@ -25,6 +25,7 @@ go env -w GO111MODULE=on
 | ------------------- | --------------------------------- | ------------- | ----------------------------------------------------- |
 | `APP_NAME`          | Полное название микросервиса      | `Tracker`     | `string`                                              |
 | `APP_MS_NAME`       | Сокращенное Название микросервиса | `tracker-dev` | `string`                                              |
+| `APP_HOST`          | Хост сервера                      | `localhost`   | `string`                                              |
 | `ENV`               | Enviroment                        | `dev`         | `dev`, `stage`, `prod`                                |
 | `PROTOCOL_PORT`     | Порт протокола                    | `9090`        | `uint16`                                              |
 | `LOG_LEVEL`         | Уровень логирования               | `info`        | `debug`, `info`, `warning`, `error`, `fatal`, `panic` |
