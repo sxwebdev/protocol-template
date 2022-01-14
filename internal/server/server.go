@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/sxwebdev/protocol-template/internal/config"
@@ -19,6 +20,7 @@ type Server struct {
 	Config          *config.Config
 	logger          logger.Logger
 	grpc            *grpc.Server
+	mx              sync.RWMutex
 	listenerServers map[string]*listenerserver.ListenerServer
 }
 
@@ -56,7 +58,9 @@ func Start(l logger.Logger) error {
 					s.logger.Errorf("accept connection error: %+v", err)
 				}
 			}()
+			s.mx.Lock()
 			s.listenerServers[protocol_name] = ls
+			s.mx.Unlock()
 		}(protocol_name, protocol)
 	}
 
