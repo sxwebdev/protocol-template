@@ -18,6 +18,9 @@ type Conn struct {
 	DeviceID     string
 	Hardware     string
 	Firmware     string
+	// Сюда можно складывать разные параметры для конкретного устройства
+	// которые доступны например только в первом пакете
+	Params map[string]interface{}
 }
 
 // Validate ...

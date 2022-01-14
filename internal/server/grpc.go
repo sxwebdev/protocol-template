@@ -23,7 +23,7 @@ func (s *Server) newGRPC() error {
 		return err
 	}
 
-	s.Logger.Infof("GRPC server start successfully on port %s", s.Config.GRPCPort)
+	s.logger.Infof("GRPC server start successfully on port %s", s.Config.GRPCPort)
 
 	if err := s.grpc.Serve(listen); err != nil {
 		return err

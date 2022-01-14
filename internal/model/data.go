@@ -8,6 +8,17 @@ import (
 	"github.com/paulmach/orb"
 )
 
+const (
+	DPKey_Accurency    = "accurency"
+	DPKey_Acceleration = "acc"
+	// Height
+	DPKey_Altitude       = "altitude"
+	DPKey_HDOP           = "hdop"
+	DPKey_PDOP           = "pdop"
+	DPKey_Direction      = "direction"
+	DPKey_SatteliteCount = "sat_c"
+)
+
 // Data ...
 type Data struct {
 	ID         uint64     `json:"id" db:"id"`

@@ -1,14 +1,11 @@
 package newprotocol
 
 import (
-	"net"
-
 	"github.com/sxwebdev/protocol-template/internal/protocol/base"
 )
 
 type NewProtocol struct {
 	*base.Base
-	listener net.Listener
 }
 
 // ProtocolData ...

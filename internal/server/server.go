@@ -6,24 +6,27 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/tkcrm/modules/logger"
 	"github.com/sxwebdev/protocol-template/internal/config"
+	"github.com/sxwebdev/protocol-template/internal/listenerserver"
 	"github.com/sxwebdev/protocol-template/internal/protocol"
+	"github.com/sxwebdev/protocol-template/internal/protocol/base"
+	"github.com/tkcrm/modules/logger"
 	"google.golang.org/grpc"
 )
 
 // Server ...
 type Server struct {
-	Config   *config.Config
-	Logger   logger.Logger
-	Protocol *protocol.Protocol
-	grpc     *grpc.Server
+	Config          *config.Config
+	logger          logger.Logger
+	grpc            *grpc.Server
+	listenerServers map[string]*listenerserver.ListenerServer
 }
 
 // Start server
 func Start(l logger.Logger) error {
 	s := &Server{
-		Logger: l,
+		logger:          l,
+		listenerServers: make(map[string]*listenerserver.ListenerServer),
 	}
 
 	// Read configuration and envirioments
@@ -35,23 +38,45 @@ func Start(l logger.Logger) error {
 
 	// Init protocols
 	c := make(chan os.Signal, 1)
-	var err error
-	s.Protocol, err = protocol.New(config, l)
+	pt, err := protocol.New(config, l)
 	if err != nil {
 		return err
 	}
-	go s.Protocol.StartServers(c)
+	for protocol_name, protocol := range pt.Protocols {
+		go func(protocol_name string, protocol base.IBase) {
+			port := config.Protocols[protocol_name]
+			// TODO реализовать UDP
+			ls, err := listenerserver.New(l, protocol_name, port, listenerserver.TypeTCP, protocol)
+			if err != nil {
+				s.logger.Errorf("start server %s error: %+v", protocol_name, err)
+				c <- os.Interrupt
+			}
+			go func() {
+				if err := ls.AcceptConnections(); err != nil {
+					s.logger.Errorf("accept connection error: %+v", err)
+				}
+			}()
+			s.listenerServers[protocol_name] = ls
+		}(protocol_name, protocol)
+	}
 
 	// Start GRPC server
 	go func() {
 		if err := s.newGRPC(); err != nil {
-			s.Logger.Fatal(err)
+			s.logger.Fatal(err)
 		}
 	}()
 
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-	s.Protocol.StopServers()
+
+	// Stop listener servers
+	for _, ls := range s.listenerServers {
+		if err := ls.StopServer(); err != nil {
+			s.logger.Errorf("%+v", err)
+		}
+	}
+
 	os.Exit(1)
 
 	return nil

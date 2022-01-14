@@ -27,7 +27,6 @@ go env -w GO111MODULE=on
 | `APP_MS_NAME`       | Сокращенное Название микросервиса | `tracker-dev` | `string`                                              |
 | `APP_HOST`          | Хост сервера                      | `localhost`   | `string`                                              |
 | `ENV`               | Enviroment                        | `dev`         | `dev`, `stage`, `prod`                                |
-| `PROTOCOL_PORT`     | Порт протокола                    | `9090`        | `uint16`                                              |
 | `LOG_LEVEL`         | Уровень логирования               | `info`        | `debug`, `info`, `warning`, `error`, `fatal`, `panic` |
 | `GRPC_PORT`         | GRPC port                         | `9001`        | `string`                                              |
 | `PROXY_DEV_KEY`     | Dev key for proxy server          |               | `string`                                              |

@@ -125,7 +125,7 @@ func GetLengthByType(t string, len uint8) (uint8, error) {
 
 	if strings.HasPrefix(t, "string") {
 		if len == 0 {
-			return 0, fmt.Errorf("Undefined len for string type")
+			return 0, fmt.Errorf("undefined len for string type")
 		}
 		return len, nil
 	}
@@ -142,7 +142,7 @@ func GetLengthByType(t string, len uint8) (uint8, error) {
 	case "int64", "uint64":
 		return 8, nil
 	default:
-		return 0, fmt.Errorf("Undefined type")
+		return 0, fmt.Errorf("undefined type")
 	}
 }
 
@@ -179,10 +179,14 @@ func GetValueByType(t string, len uint8, value []byte, order binary.ByteOrder) (
 		return UInt8(value, order)
 	}
 
-	return nil, fmt.Errorf("Undefined type")
+	return nil, fmt.Errorf("undefined type")
 }
 
-// CheckBit ...
-func CheckBit(v uint16, pos uint8) bool {
+// TODO Переделать в дженерики
+func CheckBit16(v uint16, pos uint8) bool {
+	return v&(1<<pos) != 0
+}
+
+func CheckBit8(v uint8, pos uint8) bool {
 	return v&(1<<pos) != 0
 }

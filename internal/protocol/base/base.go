@@ -1,71 +1,54 @@
 package base
 
 import (
-	"net"
-	"sync"
+	"bytes"
 	"time"
 
+	"github.com/sxwebdev/protocol-template/internal/config"
 	"github.com/sxwebdev/protocol-template/internal/model"
 	"github.com/tkcrm/modules/logger"
 )
 
 // IBase - base interface for all protocols
 type IBase interface {
-	StartServer() error
-	StopServer() error
-	Reply(conn *Conn, data []byte) error
+	ParseData(conn *Conn) error
+	Decode(conn *Conn, reader *bytes.Reader) (interface{}, map[string]interface{}, error)
 	SendCommands(conn *Conn, commands []interface{}) error
 	ConvertData(interface{}) ([]*model.Data, error)
 }
 
 // Base ...
 type Base struct {
-	Config       *Config
+	Config       *config.Config
 	Logger       logger.Logger
 	Manufacturer *model.Manufacturer
 	IdleTimeout  time.Duration
-
-	mx    sync.RWMutex
-	Conns map[*Conn]struct{}
+	ProtocolType string
 }
 
 // New ...
-func New(c *Config, l logger.Logger, m *model.Manufacturer) *Base {
-	loggerExtendedFields := []interface{}{"protocol_type", c.ProtocolType}
+func New(c *config.Config, l logger.Logger, m *model.Manufacturer, protocolType string) *Base {
+	loggerExtendedFields := []interface{}{"protocol_type", protocolType}
 	return &Base{
 		Config:       c,
 		Logger:       l.With(loggerExtendedFields...),
 		Manufacturer: m,
-		Conns:        make(map[*Conn]struct{}),
+		ProtocolType: protocolType,
 	}
 }
 
-func (b *Base) NewConn(conn net.Conn) *Conn {
-	return &Conn{
-		Conn:        conn,
-		IdleTimeout: time.Minute * 5,
-	}
-}
-
-// AddConn ...
-func (b *Base) AddConn(conn *Conn) {
-	b.mx.Lock()
-	b.Conns[conn] = struct{}{}
-	b.mx.Unlock()
-}
-
-// DeleteConn ...
-func (b *Base) DeleteConn(conn *Conn) {
-	if err := conn.Conn.Close(); err != nil {
-		b.Logger.Errorf("Close connection error: %+v", err)
-	}
-	b.mx.Lock()
-	delete(b.Conns, conn)
-	b.mx.Unlock()
+func (s *Base) Reply(conn *Conn, data []byte) error {
+	_, err := conn.Conn.Write(data)
+	return err
 }
 
 // AddData ...
 func (b *Base) AddData(conn *Conn, data []*model.Data) error {
-	// TODO ...
+	if len(data) == 0 {
+		return nil
+	}
+
+	b.Logger.Debugf("%+v", data[len(data)-1])
+
 	return nil
 }
