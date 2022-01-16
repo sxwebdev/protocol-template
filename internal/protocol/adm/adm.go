@@ -2,7 +2,6 @@ package adm
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -27,11 +26,7 @@ func (s *ADM) ParseData(conn *base.Conn) error {
 		return err
 	}
 
-	//fmt.Println(hex.EncodeToString(buf))
-
-	r := bytes.NewReader(buf[:read_bytes])
-
-	idata, _, err := s.Decode(conn, r)
+	idata, err := s.Decode(conn, buf[:read_bytes])
 	if err != nil {
 		return err
 	}

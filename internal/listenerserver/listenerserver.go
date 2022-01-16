@@ -1,6 +1,7 @@
 package listenerserver
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -59,9 +60,6 @@ func New(l logger.Logger, protocolType string, port uint16, serverType ListenerS
 
 // StopServer ...
 func (s *ListenerServer) StopServer() error {
-	for c := range s.Conns {
-		s.DeleteConn(c)
-	}
 
 	if s.listener != nil {
 		return s.listener.Close()
@@ -93,25 +91,30 @@ func (s *ListenerServer) DeleteConn(conn *base.Conn) {
 	s.mx.Unlock()
 }
 
-func (s *ListenerServer) AcceptConnections() error {
+func (s *ListenerServer) AcceptConnections(ctx context.Context) error {
 	for {
 		connection, err := s.listener.Accept()
 		if err != nil {
-			s.logger.Errorf("Error accepting connection %v", err)
-			continue
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				s.logger.Errorf("Error accepting connection %v", err)
+				continue
+			}
 		}
 
 		s.logger.Debugf("Accepted connection from %v", connection.RemoteAddr())
 
 		go func(connection net.Conn) {
-			if err := s.handleConnection(s.NewConn(connection)); err != nil {
+			if err := s.handleConnection(ctx, s.NewConn(connection)); err != nil {
 				s.logger.Errorf("handleConnection error: %v", err)
 			}
 		}(connection)
 	}
 }
 
-func (s *ListenerServer) handleConnection(conn *base.Conn) error {
+func (s *ListenerServer) handleConnection(ctx context.Context, conn *base.Conn) error {
 
 	defer s.DeleteConn(conn)
 	s.AddConn(conn)
@@ -123,16 +126,15 @@ func (s *ListenerServer) handleConnection(conn *base.Conn) error {
 	for {
 
 		go func(conn *base.Conn, done chan error) {
-
 			err := s.protocol.ParseData(conn)
-
 			done <- err
-
 		}(conn, done)
 
 		select {
 		case <-timer.C:
 			return fmt.Errorf("stop by timeout")
+		case <-ctx.Done():
+			return nil
 		case err := <-done:
 			if !timer.Stop() {
 				<-timer.C

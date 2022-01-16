@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -39,11 +40,13 @@ func Start(l logger.Logger) error {
 	s.Config = config
 
 	// Init protocols
-	c := make(chan os.Signal, 1)
 	pt, err := protocol.New(config, l)
 	if err != nil {
 		return err
 	}
+	sigCh := make(chan os.Signal, 1)
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
 	for protocol_name, protocol := range pt.Protocols {
 		go func(protocol_name string, protocol base.IBase) {
 			port := config.Protocols[protocol_name]
@@ -51,10 +54,13 @@ func Start(l logger.Logger) error {
 			ls, err := listenerserver.New(l, protocol_name, port, listenerserver.TypeTCP, protocol)
 			if err != nil {
 				s.logger.Errorf("start server %s error: %+v", protocol_name, err)
-				c <- os.Interrupt
+				sigCh <- os.Interrupt
 			}
 			go func() {
-				if err := ls.AcceptConnections(); err != nil {
+				defer wg.Done()
+				wg.Add(1)
+
+				if err := ls.AcceptConnections(ctx); err != nil {
 					s.logger.Errorf("accept connection error: %+v", err)
 				}
 			}()
@@ -71,8 +77,9 @@ func Start(l logger.Logger) error {
 		}
 	}()
 
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	<-sigCh
+	cancel()
 
 	// Stop listener servers
 	for _, ls := range s.listenerServers {
@@ -81,7 +88,8 @@ func Start(l logger.Logger) error {
 		}
 	}
 
-	os.Exit(1)
+	wg.Wait()
+	os.Exit(0)
 
 	return nil
 }

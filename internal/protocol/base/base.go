@@ -1,7 +1,6 @@
 package base
 
 import (
-	"bytes"
 	"time"
 
 	"github.com/sxwebdev/protocol-template/internal/config"
@@ -12,7 +11,7 @@ import (
 // IBase - base interface for all protocols
 type IBase interface {
 	ParseData(conn *Conn) error
-	Decode(conn *Conn, reader *bytes.Reader) (interface{}, map[string]interface{}, error)
+	Decode(conn *Conn, bs []byte) (interface{}, error)
 	SendCommands(conn *Conn, commands []interface{}) error
 	ConvertData(interface{}) ([]*model.Data, error)
 }
