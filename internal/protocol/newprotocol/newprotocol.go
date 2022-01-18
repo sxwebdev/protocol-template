@@ -3,7 +3,6 @@ package newprotocol
 import (
 	"errors"
 
-	"github.com/sxwebdev/protocol-template/internal/model"
 	"github.com/sxwebdev/protocol-template/internal/protocol/base"
 )
 
@@ -15,11 +14,6 @@ func New(b *base.Base) base.IBase {
 func (s *NewProtocol) ParseData(conn *base.Conn) error {
 
 	return errors.New("not implemented")
-}
-
-// edit it
-func (s *NewProtocol) ConvertData(data interface{}) ([]*model.Data, error) {
-	return nil, errors.New("not implemented")
 }
 
 // SendCommand ...

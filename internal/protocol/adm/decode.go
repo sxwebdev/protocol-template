@@ -1,20 +1,39 @@
 package adm
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 
+	"github.com/sxwebdev/protocol-template/internal/model"
 	"github.com/sxwebdev/protocol-template/internal/protocol/base"
 	"github.com/sxwebdev/protocol-template/utils"
 )
 
-func (s *ADM) Decode(conn *base.Conn, bs []byte) (interface{}, error) {
+func (s *ADM) Decode(conn *base.Conn, bs []byte) (model.Locations, error) {
+
+	if conn != nil {
+		// Максимальный размер пакета 1024
+		buf := make([]byte, 1024)
+		read_bytes, err := bufio.NewReader(conn.Conn).Read(buf)
+		if err != nil {
+			return nil, err
+		}
+		bs = buf[:read_bytes]
+	}
+
+	if bs == nil {
+		return nil, base.ErrBytesSliceNil
+	}
+
+	// fmt.Printf("%x\n", bs)
 
 	r := bytes.NewReader(bs)
 
-	packets := make([]ADMPacketData, 0)
+	locations := model.NewLocations()
 
 	for r.Len() > 0 {
 
@@ -40,11 +59,6 @@ func (s *ADM) Decode(conn *base.Conn, bs []byte) (interface{}, error) {
 		if err := binary.Read(r, binary.LittleEndian, &packetType); err != nil {
 			return nil, err
 		}
-		packetData := ADMPacketData{
-			deviceID:     deviceID,
-			packetLength: packetLength,
-			packetType:   packetType,
-		}
 
 		buf := make([]byte, packetLength-4)
 		_, err := r.Read(buf)
@@ -52,7 +66,7 @@ func (s *ADM) Decode(conn *base.Conn, bs []byte) (interface{}, error) {
 			return nil, err
 		}
 
-		reader := bytes.NewReader(buf)
+		reader := bytes.NewBuffer(buf)
 
 		if packetType == typePhoto {
 			return nil, fmt.Errorf("photo packet type is not supported")
@@ -63,45 +77,90 @@ func (s *ADM) Decode(conn *base.Conn, bs []byte) (interface{}, error) {
 			return nil, fmt.Errorf("adm5 packet type is not supported")
 		}
 
+		location := model.NewLocation()
+
 		// First packet
 		if packetType == typeFirstPacket {
-			if err := binary.Read(reader, binary.LittleEndian, &packetData.packetFirst); err != nil {
-				return nil, fmt.Errorf("parse iemi packet error: %v", err)
+			var packet packetFirst
+			if err := binary.Read(reader, binary.LittleEndian, &packet); err != nil {
+				return nil, fmt.Errorf("parse first packet error: %v", err)
+			}
+
+			if conn != nil {
+				if conn.IMEI == "" {
+					if err := conn.SetIMEI(packet.GetIMEI()); err != nil {
+						return nil, err
+					}
+				}
+				conn.SetHardware(strconv.Itoa(int(packet.HW)))
+				conn.SetParam("reply_enabled", packet.ReplyEnabled)
+				conn.SetDeviceId(strconv.Itoa(int(deviceID)))
 			}
 		}
 
 		// ADM6 packet
 		if packetType&(1<<0) == 0 && packetType&(1<<1) == 0 {
-			if err := binary.Read(reader, binary.LittleEndian, &packetData.packetADM6); err != nil {
+			var packet packetADM6
+			if err := binary.Read(reader, binary.LittleEndian, &packet); err != nil {
 				return nil, fmt.Errorf("parse adm6 packet error: %v", err)
 			}
+			if conn != nil {
+				conn.SetFirmware(strconv.Itoa(int(packet.FW)))
+			}
+
+			location.Set(model.LPKey_Acceleration, packet.Acceleration/10)
+			location.Set(model.LPKey_Sattelite_Count, packet.GetSatteliteCount())
+			location.Set(model.LPKey_Direction, packet.Course/10)
+			location.Set(model.LPKey_HDOP, float64(packet.HDOP)/10)
+			location.Set(model.LPKey_Altitude, packet.Height)
+
+			for status_name, value := range packet.GetStatus() {
+				location.Set(status_name, value)
+			}
+
+			location.SetLatLng(float64(packet.Latitude), float64(packet.Longitude))
+			location.SetSpeed(float64(packet.Speed) / 10)
+			location.SetTimestamp(packet.GetTime())
 		}
 
 		// ACC packet
 		if utils.CheckBit8(packetType, 2) {
-			if err := binary.Read(reader, binary.LittleEndian, &packetData.packetAcc); err != nil {
+			var packet packetAcc
+			if err := binary.Read(reader, binary.LittleEndian, &packet); err != nil {
 				return nil, fmt.Errorf("parse aac packet error: %v", err)
 			}
+
+			location.Set("vib", packet.Vib)
+			location.Set("vib_count", packet.VibCount)
+
+			for i := 0; i < 8; i++ {
+				location.Set(fmt.Sprintf("out_d_%d", i), utils.CheckBit8(packet.OutDiscrete, uint8(i)))
+				location.Set(fmt.Sprintf("in_alarm_%d", i), utils.CheckBit8(packet.InputAnalogAlarm, uint8(i)))
+			}
+
 		}
 
 		// Input analog packet
 		if utils.CheckBit8(packetType, 3) {
-			if err := binary.Read(reader, binary.LittleEndian, &packetData.packetInputAnalog); err != nil {
-				return nil, fmt.Errorf("parse input analog packet error: %v", err)
+			for i := 0; i < 6; i++ {
+				location.Set(fmt.Sprintf("%s%d", model.LPKey_InputAnalogPrefix, i), binary.LittleEndian.Uint16(reader.Next(2)))
 			}
 		}
 
 		// Input discrete packet
 		if utils.CheckBit8(packetType, 4) {
-			if err := binary.Read(reader, binary.LittleEndian, &packetData.packetInputDiscrete); err != nil {
-				return nil, fmt.Errorf("parse input discrete packet error: %v", err)
+			for i := 0; i < 2; i++ {
+				location.Set(fmt.Sprintf("%s%d", model.LPKey_InputDiscretePrefix, i), binary.LittleEndian.Uint32(reader.Next(4)))
 			}
 		}
 
 		// Fuel packet
 		if utils.CheckBit8(packetType, 5) {
-			if err := binary.Read(reader, binary.LittleEndian, &packetData.packetFuel); err != nil {
-				return nil, fmt.Errorf("parse fuel packet error: %v", err)
+			for i := 0; i < 3; i++ {
+				location.Set(fmt.Sprintf("%s%d", model.LPKey_FuelLevelPrefix, i), binary.LittleEndian.Uint16(reader.Next(2)))
+			}
+			for i := 0; i < 3; i++ {
+				location.Set(fmt.Sprintf("%s%d", model.LPKey_FuelTempPrefix, i), int8(reader.Next(1)[0]))
 			}
 		}
 
@@ -120,13 +179,11 @@ func (s *ADM) Decode(conn *base.Conn, bs []byte) (interface{}, error) {
 
 		// Odometer packet
 		if utils.CheckBit8(packetType, 7) {
-			if err := binary.Read(reader, binary.LittleEndian, &packetData.Odometer); err != nil {
-				return nil, fmt.Errorf("parse odometer packet error: %v", err)
-			}
+			location.Set(model.LPKey_Odometer, binary.LittleEndian.Uint32(reader.Next(4)))
 		}
 
-		packets = append(packets, packetData)
+		locations.Add(location)
 	}
 
-	return packets, nil
+	return locations, nil
 }

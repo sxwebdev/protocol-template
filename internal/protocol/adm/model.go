@@ -47,50 +47,10 @@ type packetADM6 struct {
 }
 
 type packetAcc struct {
-	Vib             uint8
-	VibCount        uint8
-	OutDiscrete     uint8
-	InputAnaloglarm uint8
-}
-
-type packetInputAnalog struct {
-	InputAnalog_0 uint16
-	InputAnalog_1 uint16
-	InputAnalog_2 uint16
-	InputAnalog_3 uint16
-	InputAnalog_4 uint16
-	InputAnalog_5 uint16
-}
-
-type packetInputDiscrete struct {
-	InputDiscrete_0 uint32
-	InputDiscrete_1 uint32
-}
-
-type packetFuel struct {
-	FuelLevel_0 uint16
-	FuelLevel_1 uint16
-	FuelLevel_2 uint16
-	FuelTemp_0  int8
-	FuelTemp_1  int8
-	FuelTemp_2  int8
-}
-
-type packetOdometer struct {
-	Odometer uint32
-}
-
-type ADMPacketData struct {
-	deviceID     uint16
-	packetLength uint8
-	packetType   uint8
-	packetFirst
-	packetADM6
-	packetAcc
-	packetInputAnalog
-	packetInputDiscrete
-	packetFuel
-	packetOdometer
+	Vib              uint8
+	VibCount         uint8
+	OutDiscrete      uint8
+	InputAnalogAlarm uint8
 }
 
 func (d *packetADM6) GetTime() time.Time {

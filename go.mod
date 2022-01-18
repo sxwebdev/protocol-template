@@ -23,4 +23,7 @@ require (
 
 require github.com/pkg/errors v0.9.1 // indirect
 
-require github.com/paulmach/orb v0.4.0
+require (
+	github.com/goccy/go-json v0.9.3
+	github.com/paulmach/orb v0.4.0
+)
