@@ -5,7 +5,7 @@ import (
 	"github.com/sxwebdev/protocol-template/internal/protocol/base"
 )
 
-func (s *NewProtocol) Decode(conn *base.Conn, bs []byte) (model.Locations, error) {
+func (s *NewProtocol) Decode(conn *base.Conn) (model.Locations, error) {
 	locations := model.NewLocations()
 
 	return locations, nil

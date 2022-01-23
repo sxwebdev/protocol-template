@@ -13,23 +13,15 @@ import (
 	"github.com/sxwebdev/protocol-template/utils"
 )
 
-func (s *ADM) Decode(conn *base.Conn, bs []byte) (model.Locations, error) {
+func (s *ADM) Decode(conn *base.Conn) (model.Locations, error) {
 
-	if conn != nil {
-		// Максимальный размер пакета 1024
-		buf := make([]byte, 1024)
-		read_bytes, err := bufio.NewReader(conn.Conn).Read(buf)
-		if err != nil {
-			return nil, err
-		}
-		bs = buf[:read_bytes]
+	// Max packet length 1024
+	buf := make([]byte, 1024)
+	read_bytes, err := bufio.NewReader(conn.Reader).Read(buf)
+	if err != nil {
+		return nil, err
 	}
-
-	if bs == nil {
-		return nil, base.ErrBytesSliceNil
-	}
-
-	// fmt.Printf("%x\n", bs)
+	bs := buf[:read_bytes]
 
 	r := bytes.NewReader(bs)
 
@@ -86,16 +78,15 @@ func (s *ADM) Decode(conn *base.Conn, bs []byte) (model.Locations, error) {
 				return nil, fmt.Errorf("parse first packet error: %v", err)
 			}
 
-			if conn != nil {
-				if conn.IMEI == "" {
-					if err := conn.SetIMEI(packet.GetIMEI()); err != nil {
-						return nil, err
-					}
+			if conn.IMEI == "" {
+				if err := conn.SetIMEI(packet.GetIMEI()); err != nil {
+					return nil, err
 				}
-				conn.SetHardware(strconv.Itoa(int(packet.HW)))
-				conn.SetParam("reply_enabled", packet.ReplyEnabled)
-				conn.SetDeviceId(strconv.Itoa(int(deviceID)))
 			}
+			conn.SetHardware(strconv.Itoa(int(packet.HW)))
+			conn.SetParam("reply_enabled", packet.ReplyEnabled)
+			conn.SetDeviceId(strconv.Itoa(int(deviceID)))
+
 		}
 
 		// ADM6 packet
@@ -104,9 +95,8 @@ func (s *ADM) Decode(conn *base.Conn, bs []byte) (model.Locations, error) {
 			if err := binary.Read(reader, binary.LittleEndian, &packet); err != nil {
 				return nil, fmt.Errorf("parse adm6 packet error: %v", err)
 			}
-			if conn != nil {
-				conn.SetFirmware(strconv.Itoa(int(packet.FW)))
-			}
+
+			conn.SetFirmware(strconv.Itoa(int(packet.FW)))
 
 			location.Set(model.LPKey_Acceleration, packet.Acceleration/10)
 			location.Set(model.LPKey_Sattelite_Count, packet.GetSatteliteCount())

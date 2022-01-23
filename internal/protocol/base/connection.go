@@ -1,7 +1,10 @@
 package base
 
 import (
+	"bufio"
+	"fmt"
 	"net"
+	"regexp"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -10,6 +13,7 @@ import (
 // Conn ...
 type Conn struct {
 	Conn        net.Conn
+	Reader      *bufio.Reader
 	IdleTimeout time.Duration
 	// Device IMEI
 	IMEI string
@@ -18,12 +22,35 @@ type Conn struct {
 	DeviceID     string
 	Hardware     string
 	Firmware     string
-	// Сюда можно складывать разные параметры для конкретного устройства
-	// которые доступны например только в первом пакете
-	Params map[string]interface{}
+	Params       map[string]interface{}
+}
+
+func NewConn(conn net.Conn) *Conn {
+	return &Conn{
+		Conn:        conn,
+		Reader:      bufio.NewReader(conn),
+		IdleTimeout: time.Minute * 5,
+		Params:      make(map[string]interface{}),
+	}
+}
+
+func (c *Conn) CheckIMEI(imei string) error {
+	r := regexp.MustCompile(`^\d+$`)
+	if !r.MatchString(imei) {
+		return fmt.Errorf("invalid imei: %s", imei)
+	}
+
+	if len(imei) < 15 || len(imei) > 16 {
+		return fmt.Errorf("invalid imei length: %s / len: %d", imei, len(imei))
+	}
+
+	return nil
 }
 
 func (c *Conn) SetIMEI(v string) error {
+	if err := c.CheckIMEI(v); err != nil {
+		return err
+	}
 	c.IMEI = v
 
 	return nil
@@ -52,7 +79,6 @@ func (c *Conn) SetParam(key string, value interface{}) {
 	c.Params[key] = value
 }
 
-// Validate ...
 func (c *Conn) Validate() error {
 	return validation.ValidateStruct(
 		c,

@@ -11,11 +11,10 @@ import (
 // IBase - base interface for all protocols
 type IBase interface {
 	ParseData(conn *Conn) error
-	Decode(conn *Conn, bs []byte) (model.Locations, error)
+	Decode(conn *Conn) (model.Locations, error)
 	SendCommands(conn *Conn, commands []interface{}) error
 }
 
-// Base ...
 type Base struct {
 	Config       *config.Config
 	Logger       logger.Logger
@@ -24,7 +23,6 @@ type Base struct {
 	ProtocolType string
 }
 
-// New ...
 func New(c *config.Config, l logger.Logger, m *model.Manufacturer, protocolType string) *Base {
 	loggerExtendedFields := []interface{}{"protocol_type", protocolType}
 	return &Base{
@@ -40,7 +38,6 @@ func (s *Base) Reply(conn *Conn, data []byte) error {
 	return err
 }
 
-// AddData ...
 func (b *Base) AddData(conn *Conn, data []*model.Location) error {
 	if len(data) == 0 {
 		return nil
@@ -51,7 +48,6 @@ func (b *Base) AddData(conn *Conn, data []*model.Location) error {
 	return nil
 }
 
-// Используется для дебага протокола
 func (s *Base) PrintLastLocTime(locations model.Locations) {
 	if s.Config.ENV == "dev" && len(locations) > 0 {
 		lastItem := locations[len(locations)-1]

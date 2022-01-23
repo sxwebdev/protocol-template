@@ -58,7 +58,6 @@ func New(l logger.Logger, protocolType string, port uint16, serverType ListenerS
 	}, nil
 }
 
-// StopServer ...
 func (s *ListenerServer) StopServer() error {
 
 	if s.listener != nil {
@@ -66,14 +65,6 @@ func (s *ListenerServer) StopServer() error {
 	}
 
 	return nil
-}
-
-func (s *ListenerServer) NewConn(conn net.Conn) *base.Conn {
-	return &base.Conn{
-		Conn:        conn,
-		IdleTimeout: time.Minute * 5,
-		Params:      make(map[string]interface{}),
-	}
 }
 
 func (s *ListenerServer) AddConn(conn *base.Conn) {
@@ -107,7 +98,7 @@ func (s *ListenerServer) AcceptConnections(ctx context.Context) error {
 		s.logger.Debugf("Accepted connection from %v", connection.RemoteAddr())
 
 		go func(connection net.Conn) {
-			if err := s.handleConnection(ctx, s.NewConn(connection)); err != nil {
+			if err := s.handleConnection(ctx, base.NewConn(connection)); err != nil {
 				s.logger.Errorf("handleConnection error: %v", err)
 			}
 		}(connection)

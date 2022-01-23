@@ -6,24 +6,19 @@ import (
 	"github.com/sxwebdev/protocol-template/internal/protocol/base"
 )
 
-// New ...
 func New(b *base.Base) base.IBase {
 	return &ADM{Base: b}
 }
 
 func (s *ADM) ParseData(conn *base.Conn) error {
 
-	locations, err := s.Decode(conn, nil)
+	locations, err := s.Decode(conn)
 	if err != nil {
 		return err
 	}
 
-	s.PrintLastLocTime(locations)
-
-	if conn.IMEI != "" && len(locations) > 0 {
-		if err := s.AddData(conn, locations); err != nil {
-			return err
-		}
+	if err := s.AddData(conn, locations); err != nil {
+		return err
 	}
 
 	if reply_enabled, ok := conn.Params["reply_enabled"]; ok {
