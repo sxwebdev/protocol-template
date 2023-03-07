@@ -14,7 +14,6 @@ import (
 )
 
 func (s *ADM) Decode(conn *base.Conn) (model.Locations, error) {
-
 	// Max packet length 1024
 	buf := make([]byte, 1024)
 	read_bytes, err := bufio.NewReader(conn.Reader).Read(buf)
@@ -28,7 +27,6 @@ func (s *ADM) Decode(conn *base.Conn) (model.Locations, error) {
 	locations := model.NewLocations()
 
 	for r.Len() > 0 {
-
 		var deviceID uint16
 		if err := binary.Read(r, binary.LittleEndian, &deviceID); err != nil {
 			return nil, err

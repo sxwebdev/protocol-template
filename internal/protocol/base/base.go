@@ -5,7 +5,7 @@ import (
 
 	"github.com/sxwebdev/protocol-template/internal/config"
 	"github.com/sxwebdev/protocol-template/internal/model"
-	"github.com/tkcrm/modules/logger"
+	"github.com/tkcrm/modules/pkg/logger"
 )
 
 // IBase - base interface for all protocols
@@ -49,7 +49,7 @@ func (b *Base) AddData(conn *Conn, data []*model.Location) error {
 }
 
 func (s *Base) PrintLastLocTime(locations model.Locations) {
-	if s.Config.ENV == "dev" && len(locations) > 0 {
+	if s.Config.StandName == "local" && len(locations) > 0 {
 		lastItem := locations[len(locations)-1]
 		s.Logger.Debugf("last time: %s", lastItem.Timestamp.String())
 	}

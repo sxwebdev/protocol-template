@@ -13,8 +13,9 @@ import (
 
 	"github.com/sakirsensoy/genv"
 	"github.com/sakirsensoy/genv/dotenv"
-	"github.com/tkcrm/modules/logger"
-	"github.com/tkcrm/modules/utils"
+	"github.com/sxwebdev/protocol-template/internal/config"
+	"github.com/tkcrm/modules/pkg/cfg"
+	"github.com/tkcrm/modules/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -31,7 +32,16 @@ type server struct {
 }
 
 func main() {
-	l := logger.DefaultLogger(utils.GetDefaultString(os.Getenv("LOG_LEVEL"), "info"), "tracker-proxy-client")
+	// Load configuration
+	var config config.Config
+	if err := cfg.LoadConfig(&config); err != nil {
+		logger.New().Fatalf("could not load configuration: %v", err)
+	}
+
+	l := logger.New(
+		logger.WithAppName(config.ServiceName),
+		logger.WithLogLevel(logger.LogLevelDebug),
+	)
 
 	remotePort := flag.Int("port", 0, "relayd port")
 
@@ -41,7 +51,9 @@ func main() {
 		l.Fatal("Undefined port")
 	}
 
-	dotenv.Load()
+	if err := dotenv.Load(); err != nil {
+		l.Fatal(err)
+	}
 
 	proxyDevKey := genv.Key("PROXY_DEV_KEY").String()
 	if proxyDevKey == "" {
@@ -99,7 +111,6 @@ func main() {
 }
 
 func (s *server) start() error {
-
 	// Устанавливаем локальное соединение
 	conn, err := net.DialTimeout("tcp4", fmt.Sprintf(":%d", s.remotePort), time.Second)
 	if err != nil {

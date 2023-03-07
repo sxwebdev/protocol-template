@@ -12,7 +12,6 @@ func New(b *base.Base) base.IBase {
 }
 
 func (s *NewProtocol) ParseData(conn *base.Conn) error {
-
 	return errors.New("not implemented")
 }
 

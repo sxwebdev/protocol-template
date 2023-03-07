@@ -11,7 +11,6 @@ func New(b *base.Base) base.IBase {
 }
 
 func (s *ADM) ParseData(conn *base.Conn) error {
-
 	locations, err := s.Decode(conn)
 	if err != nil {
 		return err
@@ -35,6 +34,5 @@ func (s *ADM) ParseData(conn *base.Conn) error {
 }
 
 func (s *ADM) SendCommands(conn *base.Conn, commands []interface{}) error {
-
 	return nil
 }
