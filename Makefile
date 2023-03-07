@@ -1,8 +1,3 @@
-export GO111MODULE=on
-export GOPROXY=direct
-export GOSUMDB=off
-export CGO_ENABLED=0
-
 -include .env
 
 start:

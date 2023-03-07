@@ -19,7 +19,7 @@
 .glide/
 
 # Dependency directories (remove the comment below to include it)
-vendor/
+# vendor/
 
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
@@ -34,7 +34,21 @@ _test
 # Visual Studio Code
 .vscode
 
-#protos/*.go
-build
+.tmp
+.build
+
+./start*
 .env
+.netrc
+
 Dockerfile-dev
+dev.Dockerfile
+node_modules
+build
+dist
+internal/store/temp
+
+go.work
+go.work.sum
+
+/server

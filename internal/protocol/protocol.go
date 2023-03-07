@@ -8,7 +8,7 @@ import (
 	"github.com/sxwebdev/protocol-template/internal/protocol/adm"
 	"github.com/sxwebdev/protocol-template/internal/protocol/base"
 	"github.com/sxwebdev/protocol-template/internal/protocol/newprotocol"
-	"github.com/tkcrm/modules/logger"
+	"github.com/tkcrm/modules/pkg/logger"
 )
 
 // Protocol ...
@@ -19,7 +19,6 @@ type Protocol struct {
 
 // New ...
 func New(c *config.Config, l logger.Logger) (*Protocol, error) {
-
 	protocol := &Protocol{
 		logger:    l,
 		Protocols: make(map[string]base.IBase),

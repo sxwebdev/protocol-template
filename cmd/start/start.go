@@ -1,26 +1,37 @@
 package main
 
 import (
-	"os"
+	"context"
+	"os/signal"
+	"syscall"
 
-	"github.com/sakirsensoy/genv"
-	"github.com/sakirsensoy/genv/dotenv"
-	"github.com/tkcrm/modules/logger"
-	"github.com/tkcrm/modules/utils"
+	"github.com/sxwebdev/protocol-template/internal/config"
 	"github.com/sxwebdev/protocol-template/internal/server"
+	"github.com/tkcrm/modules/pkg/cfg"
+	"github.com/tkcrm/modules/pkg/logger"
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGSTOP, syscall.SIGTERM)
+	defer stop()
 
-	if utils.GetDefaultString(os.Getenv("ENV"), "dev") == "dev" {
-		dotenv.Load()
+	// Load configuration
+	var config config.Config
+	if err := cfg.LoadConfig(&config); err != nil {
+		logger.New().Fatalf("could not load configuration: %v", err)
 	}
 
-	l := logger.DefaultLogger(
-		utils.GetDefaultString(genv.Key("LOG_LEVEL").String(), "info"),
-		utils.GetDefaultString(genv.Key("APP_MS_NAME").String(), "undefined_app_ms_name"),
+	// Init logger
+	l := logger.New(
+		logger.WithAppName(config.ServiceName),
 	)
-	if err := server.Start(l); err != nil {
-		l.Errorf("INIT APP ERROR: %v", err)
+	defer l.Sync()
+
+	// Init Server
+	srv := server.New(l, &config)
+
+	// Start server
+	if err := srv.Start(ctx); err != nil {
+		l.Fatalf("start server error: %v", err)
 	}
 }

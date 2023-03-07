@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/sxwebdev/protocol-template/internal/protocol/base"
-	"github.com/tkcrm/modules/logger"
+	"github.com/tkcrm/modules/pkg/logger"
 )
 
 type ListenerServerType int
